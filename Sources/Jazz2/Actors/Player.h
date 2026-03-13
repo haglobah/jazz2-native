@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "ActorBase.h"
+#include "PlayerConstants.h"
 #include "../LevelInitialization.h"
 #include "../ShieldType.h"
 #include "../SuspendType.h"
@@ -266,15 +267,15 @@ namespace Jazz2::Actors
 			Shield				/**< Set because a shield was activated */
 		};
 
-		/** @{ @name Constants */
+		/** @{ @name Constants (defined in PlayerConstants.h) */
 
-		static constexpr float MaxDashingSpeed = 9.0f;
-		static constexpr float MaxRunningSpeed = 4.0f;
-		static constexpr float MaxVineSpeed = 2.0f;
-		static constexpr float MaxDizzySpeed = 2.4f;
-		static constexpr float MaxShallowWaterSpeed = 3.6f;
-		static constexpr float Acceleration = 0.2f;
-		static constexpr float Deceleration = 0.22f;
+		static constexpr float MaxDashingSpeed = PlayerConstants::MaxDashingSpeed;
+		static constexpr float MaxRunningSpeed = PlayerConstants::MaxRunningSpeed;
+		static constexpr float MaxVineSpeed = PlayerConstants::MaxVineSpeed;
+		static constexpr float MaxDizzySpeed = PlayerConstants::MaxDizzySpeed;
+		static constexpr float MaxShallowWaterSpeed = PlayerConstants::MaxShallowWaterSpeed;
+		static constexpr float Acceleration = PlayerConstants::Acceleration;
+		static constexpr float Deceleration = PlayerConstants::Deceleration;
 
 		static constexpr const char* WeaponNames[(std::int32_t)WeaponType::Count] = {
 			"Blaster",

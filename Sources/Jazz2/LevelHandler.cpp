@@ -1,4 +1,5 @@
 ﻿#include "LevelHandler.h"
+#include "Actors/PlayerConstants.h"
 #include "ContentResolver.h"
 #include "PreferencesCache.h"
 #include "Rendering/PlayerViewport.h"
@@ -335,7 +336,7 @@ namespace Jazz2
 
 	float LevelHandler::GetGravity() const
 	{
-		constexpr float DefaultGravity = 0.3f;
+		constexpr float DefaultGravity = Actors::PlayerConstants::DefaultGravity;
 
 		// Higher gravity in Reforged mode
 		return (_isReforged ? DefaultGravity : DefaultGravity * 0.8f);

@@ -1,5 +1,8 @@
 ﻿#include "Player.h"
+#include "PlayerConstants.h"
 #include "../ContentResolver.h"
+
+namespace { namespace PC = Jazz2::Actors::PlayerConstants; }
 #include "../ILevelHandler.h"
 #include "../Events/EventMap.h"
 #include "../Tiles/TileMap.h"
@@ -719,9 +722,9 @@ namespace Jazz2::Actors
 			float playerMovement = _levelHandler->PlayerHorizontalMovement(this);
 			float playerMovementVelocity = std::abs(playerMovement);
 			if (_currentSpecialMove == SpecialMoveType::Buttstomp) {
-				_speed.X = 0.2f * playerMovement;
+				_speed.X = PC::ButtstompMovementFactor * playerMovement;
 				if (_isRunPressed) {
-					_speed.X *= 2.6f;
+					_speed.X *= PC::ButtstompRunMultiplier;
 				}
 			} else if (canWalk && playerMovementVelocity > 0.5f) {
 				SetAnimation(_currentAnimation->State & ~(AnimState::Lookup | AnimState::Crouch));
@@ -888,7 +891,7 @@ namespace Jazz2::Actors
 						SetState(ActorState::ApplyGravitation, false);
 						SetAnimation(AnimState::Buttstomp);
 						SetPlayerTransition(AnimState::TransitionButtstompStart, true, false, SpecialMoveType::Buttstomp, [this]() {
-							_speed.Y = 9.0f;
+							_speed.Y = PC::ButtstompSpeedY;
 							SetState(ActorState::ApplyGravitation, true);
 							SetAnimation(AnimState::Buttstomp);
 							PlaySfx("Buttstomp"_s, 1.0f, 0.8f);
@@ -918,10 +921,10 @@ namespace Jazz2::Actors
 
 							_isLifting = false;
 							_controllable = false;
-							_jumpTime = 12.0f;
+							_jumpTime = PC::LiftJumpTime;
 
-							_speed.Y = -3.0f;
-							_internalForceY = -0.88f;
+							_speed.Y = PC::LiftJumpSpeedY;
+							_internalForceY = PC::LiftJumpInternalForceY;
 
 							SetTransition(AnimState::TransitionLiftEnd, false, [this]() {
 								_controllable = true;
@@ -934,20 +937,20 @@ namespace Jazz2::Actors
 										_controllable = false;
 										SetAnimation(AnimState::Uppercut);
 										SetPlayerTransition(AnimState::TransitionUppercutA, true, true, SpecialMoveType::Uppercut, [this]() {
-											_externalForce.Y = (_levelHandler->IsReforged() ? -1.4f : -1.2f);
-											_speed.Y = -2.0f;
+											_externalForce.Y = (_levelHandler->IsReforged() ? PC::UppercutForceYReforged : PC::UppercutForceYOriginal);
+											_speed.Y = PC::UppercutSpeedY;
 											SetState(ActorState::CanJump, false);
 											SetPlayerTransition(AnimState::TransitionUppercutB, true, true, SpecialMoveType::Uppercut);
 										});
 									} else {
 										if (_speed.Y > 0.01f && !CanJump() && (_currentAnimation->State & (AnimState::Fall | AnimState::Copter)) != AnimState::Idle) {
 											SetState(ActorState::ApplyGravitation, false);
-											_speed.Y = 1.5f;
+											_speed.Y = PC::CopterSpeedY;
 											_externalForce.Y = 0.0f;
 											if ((_currentAnimation->State & AnimState::Copter) != AnimState::Copter) {
 												SetAnimation(AnimState::Copter);
 											}
-											_copterFramesLeft = 70.0f;
+											_copterFramesLeft = PC::CopterFrames;
 #if defined(WITH_AUDIO)
 											if (_copterSound == nullptr) {
 												_copterSound = PlaySfx("Copter"_s, 0.6f, 1.5f);
@@ -963,11 +966,11 @@ namespace Jazz2::Actors
 								case PlayerType::Spaz: {
 									if ((_currentAnimation->State & AnimState::Crouch) == AnimState::Crouch) {
 										_controllable = false;
-										_controllableTimeout = 60.0f;
+										_controllableTimeout = PC::SpazSidekickTimeout;
 										SetAnimation(AnimState::Uppercut);
 										SetPlayerTransition(AnimState::TransitionUppercutA, true, false, SpecialMoveType::Sidekick, [this]() {
-											_externalForce.X = 8.0f * (IsFacingLeft() ? -1.0f : 1.0f);
-											_speed.X = 14.4f * (IsFacingLeft() ? -1.0f : 1.0f);
+											_externalForce.X = PC::SpazSidekickForceX * (IsFacingLeft() ? -1.0f : 1.0f);
+											_speed.X = PC::SpazSidekickSpeedX * (IsFacingLeft() ? -1.0f : 1.0f);
 											SetState(ActorState::ApplyGravitation, false);
 											SetPlayerTransition(AnimState::TransitionUppercutB, true, false, SpecialMoveType::Sidekick);
 										});
@@ -978,9 +981,9 @@ namespace Jazz2::Actors
 											_canDoubleJump = false;
 											_isFreefall = false;
 
-											_internalForceY = (_levelHandler->IsReforged() ? -1.15f : -0.88f) - 0.1f * (1.0f - timeMult);
-											_speed.Y = -0.6f - std::max(0.0f, (std::abs(_speed.X) - 4.0f) * 0.3f);
-											_speed.X = std::clamp(_speed.X * 0.4f, -1.0f, 1.0f);
+											_internalForceY = (_levelHandler->IsReforged() ? PC::SpazDoubleJumpForceReforged : PC::SpazDoubleJumpForceOriginal) - 0.1f * (1.0f - timeMult);
+											_speed.Y = PC::SpazDoubleJumpSpeedY - std::max(0.0f, (std::abs(_speed.X) - PC::JumpSpeedXThreshold) * PC::JumpSpeedXFactor);
+											_speed.X = std::clamp(_speed.X * PC::SpazDoubleJumpSpeedXDampen, -PC::SpazDoubleJumpSpeedXClamp, PC::SpazDoubleJumpSpeedXClamp);
 
 											PlayPlayerSfx("DoubleJump"_s);
 
@@ -992,22 +995,22 @@ namespace Jazz2::Actors
 								case PlayerType::Lori: {
 									if ((_currentAnimation->State & AnimState::Crouch) == AnimState::Crouch) {
 										_controllable = false;
-										_controllableTimeout = 40.0f;
+										_controllableTimeout = PC::LoriSidekickTimeout;
 										SetAnimation(AnimState::Uppercut);
 										SetPlayerTransition(AnimState::TransitionUppercutA, true, false, SpecialMoveType::Sidekick, [this]() {
-											_externalForce.X = 4.0f * (IsFacingLeft() ? -1.0f : 1.0f);
-											_speed.X = 9.3f * (IsFacingLeft() ? -1.0f : 1.0f);
+											_externalForce.X = PC::LoriSidekickForceX * (IsFacingLeft() ? -1.0f : 1.0f);
+											_speed.X = PC::LoriSidekickSpeedX * (IsFacingLeft() ? -1.0f : 1.0f);
 											SetState(ActorState::ApplyGravitation, false);
 										});
 									} else {
 										if (_speed.Y > 0.01f && !CanJump() && (_currentAnimation->State & (AnimState::Fall | AnimState::Copter)) != AnimState::Idle) {
 											SetState(ActorState::ApplyGravitation, false);
-											_speed.Y = 1.5f;
+											_speed.Y = PC::CopterSpeedY;
 											_externalForce.Y = 0.0f;
 											if ((_currentAnimation->State & AnimState::Copter) != AnimState::Copter) {
 												SetAnimation(AnimState::Copter);
 											}
-											_copterFramesLeft = 70.0f;
+											_copterFramesLeft = PC::CopterFrames;
 #if defined(WITH_AUDIO)
 											if (_copterSound == nullptr) {
 												_copterSound = PlaySfx("Copter"_s, 0.6f, 1.5f);
@@ -1042,7 +1045,7 @@ namespace Jazz2::Actors
 				if (!CanJump()) {
 					// Extend copter time
 					if (_copterFramesLeft > 0.0f) {
-						_copterFramesLeft = 70.0f;
+						_copterFramesLeft = PC::CopterFrames;
 					}
 				} else if (_currentSpecialMove == SpecialMoveType::None && _jumpTime <= 0.0f && !_levelHandler->PlayerActionPressed(this, PlayerAction::Down)) {
 					// Standard jump
@@ -1051,7 +1054,7 @@ namespace Jazz2::Actors
 						_isFreefall = false;
 						SetAnimation(_currentAnimation->State & (~AnimState::Lookup & ~AnimState::Crouch));
 						PlayPlayerSfx("Jump"_s);
-						_jumpTime = 10.0f;
+						_jumpTime = PC::JumpTime;
 						_carryingObject = nullptr;
 
 						// Gravitation is sometimes off because of active copter, turn it on again
@@ -1059,13 +1062,13 @@ namespace Jazz2::Actors
 						SetState(ActorState::IsSolidObject, false);
 
 						if (_levelHandler->IsReforged()) {
-							_speed.Y = -3.6f - std::max(0.0f, (std::abs(_speed.X) - 4.0f) * 0.3f);
-							_internalForceY = -1.02f - 0.07f * (1.0f - timeMult);
+							_speed.Y = PC::JumpSpeedReforged - std::max(0.0f, (std::abs(_speed.X) - PC::JumpSpeedXThreshold) * PC::JumpSpeedXFactor);
+							_internalForceY = PC::JumpInternalForceReforged - 0.07f * (1.0f - timeMult);
 							if (_playerType == PlayerType::Lori) {
-								_speed.Y *= 1.3f;
+								_speed.Y *= PC::LoriJumpMultiplier;
 							}
 						} else {
-							_speed.Y = -8.0f - std::max(0.0f, (std::abs(_speed.X) - 4.0f) * 0.3f);
+							_speed.Y = PC::JumpSpeedOriginal - std::max(0.0f, (std::abs(_speed.X) - PC::JumpSpeedXThreshold) * PC::JumpSpeedXFactor);
 						}
 					}
 				}
@@ -1077,8 +1080,8 @@ namespace Jazz2::Actors
 							_internalForceY = 0.0f;
 						}
 					} else {
-						if (_speed.Y < -4.0f) {
-							_speed.Y = -4.0f;
+						if (_speed.Y < PC::JumpReleaseCap) {
+							_speed.Y = PC::JumpReleaseCap;
 						}
 					}
 				}
@@ -2226,7 +2229,7 @@ namespace Jazz2::Actors
 				cancelCopter = (CanJump() || _suspendType != SuspendType::None || _copterFramesLeft <= 0.0f);
 
 				_copterFramesLeft -= timeMult;
-				_speed.Y = std::min(_speed.Y + _levelHandler->GetGravity() * timeMult, 1.5f);
+				_speed.Y = std::min(_speed.Y + _levelHandler->GetGravity() * timeMult, PC::CopterMaxFallSpeed);
 			} else {
 				cancelCopter = ((_currentAnimation->State & AnimState::Fall) == AnimState::Fall && _copterFramesLeft > 0.0f);
 			}
