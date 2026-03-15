@@ -1,6 +1,9 @@
 ﻿#include "PlayerViewport.h"
 #include "../PreferencesCache.h"
 #include "../Actors/Player.h"
+#include "../Actors/PlayerConstants.h"
+
+namespace { namespace PC = Jazz2::Actors::PlayerConstants; }
 
 #include "../../nCine/tracy.h"
 #include "../../nCine/Base/Random.h"
@@ -11,7 +14,7 @@ namespace Jazz2::Rendering
 	PlayerViewport::PlayerViewport(LevelHandler* levelHandler, Actors::ActorBase* targetActor)
 		: _levelHandler(levelHandler), _targetActor(targetActor),
 			_downsamplePass(this), _blurPass1(this), _blurPass2(this), _blurPass3(this), _blurPass4(this),
-			_cameraResponsiveness(ResponsivenessMax, ResponsivenessMax), _shakeDuration(0.0f)
+			_cameraResponsiveness(PC::CameraResponsivenessMax, PC::CameraResponsivenessMax), _shakeDuration(0.0f)
 	{
 		_ambientLight = levelHandler->_defaultAmbientLight;
 		_ambientLightTarget = _ambientLight.W;
@@ -171,30 +174,30 @@ namespace Jazz2::Rendering
 		Vector2f focusVelocity = Vector2f(std::abs(focusSpeed.X), std::abs(focusSpeed.Y));
 
 		// Camera responsiveness (smoothing unexpected movements)
-		if (focusVelocity.X <= 3.0f) {
-			if (_cameraResponsiveness.X > ResponsivenessMin) {
-				_cameraResponsiveness.X = std::max(_cameraResponsiveness.X - ResponsivenessChange * timeMult, ResponsivenessMin);
+		if (focusVelocity.X <= PC::CameraResponsivenessThreshold) {
+			if (_cameraResponsiveness.X > PC::CameraResponsivenessMin) {
+				_cameraResponsiveness.X = std::max(_cameraResponsiveness.X - PC::CameraResponsivenessChange * timeMult, PC::CameraResponsivenessMin);
 			}
 		} else {
-			if (_cameraResponsiveness.X < ResponsivenessMax) {
-				_cameraResponsiveness.X = std::min(_cameraResponsiveness.X + ResponsivenessChange * timeMult, ResponsivenessMax);
+			if (_cameraResponsiveness.X < PC::CameraResponsivenessMax) {
+				_cameraResponsiveness.X = std::min(_cameraResponsiveness.X + PC::CameraResponsivenessChange * timeMult, PC::CameraResponsivenessMax);
 			}
 		}
-		if (focusVelocity.Y <= 3.0f) {
-			if (_cameraResponsiveness.Y > ResponsivenessMin) {
-				_cameraResponsiveness.Y = std::max(_cameraResponsiveness.Y - ResponsivenessChange * timeMult, ResponsivenessMin);
+		if (focusVelocity.Y <= PC::CameraResponsivenessThreshold) {
+			if (_cameraResponsiveness.Y > PC::CameraResponsivenessMin) {
+				_cameraResponsiveness.Y = std::max(_cameraResponsiveness.Y - PC::CameraResponsivenessChange * timeMult, PC::CameraResponsivenessMin);
 			}
 		} else {
-			if (_cameraResponsiveness.Y < ResponsivenessMax) {
-				_cameraResponsiveness.Y = std::min(_cameraResponsiveness.Y + ResponsivenessChange * timeMult, ResponsivenessMax);
+			if (_cameraResponsiveness.Y < PC::CameraResponsivenessMax) {
+				_cameraResponsiveness.Y = std::min(_cameraResponsiveness.Y + PC::CameraResponsivenessChange * timeMult, PC::CameraResponsivenessMax);
 			}
 		}
 
 		_cameraLastPos.X = lerpByTime(_cameraLastPos.X, focusPos.X, std::min(_cameraResponsiveness.X, 1.0f), timeMult);
 		_cameraLastPos.Y = lerpByTime(_cameraLastPos.Y, focusPos.Y, std::min(_cameraResponsiveness.Y, 1.0f), timeMult);
 
-		_cameraDistanceFactor.X = lerpByTime(_cameraDistanceFactor.X, focusSpeed.X * 8.0f, (focusVelocity.X < 2.0f ? SlowRatioX : FastRatioX), timeMult);
-		_cameraDistanceFactor.Y = lerpByTime(_cameraDistanceFactor.Y, focusSpeed.Y * 5.0f, (focusVelocity.Y < 2.0f ? SlowRatioY : FastRatioY), timeMult);
+		_cameraDistanceFactor.X = lerpByTime(_cameraDistanceFactor.X, focusSpeed.X * PC::CameraLookAheadMultiplierX, (focusVelocity.X < PC::CameraLookAheadSlowThreshold ? PC::CameraSlowRatioX : PC::CameraFastRatioX), timeMult);
+		_cameraDistanceFactor.Y = lerpByTime(_cameraDistanceFactor.Y, focusSpeed.Y * PC::CameraLookAheadMultiplierY, (focusVelocity.Y < PC::CameraLookAheadSlowThreshold ? PC::CameraSlowRatioY : PC::CameraFastRatioY), timeMult);
 
 		if (_shakeDuration > 0.0f) {
 			_shakeDuration -= timeMult;
@@ -260,7 +263,7 @@ namespace Jazz2::Rendering
 			_cameraPos = focusPos;
 			_cameraLastPos = _cameraPos;
 			_cameraDistanceFactor = Vector2f(0.0f, 0.0f);
-			_cameraResponsiveness = Vector2f(ResponsivenessMax, ResponsivenessMax);
+			_cameraResponsiveness = Vector2f(PC::CameraResponsivenessMax, PC::CameraResponsivenessMax);
 		} else {
 			Vector2f diff = _cameraLastPos - _cameraPos;
 			_cameraPos = focusPos;

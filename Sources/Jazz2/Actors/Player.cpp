@@ -778,7 +778,7 @@ namespace Jazz2::Actors
 				_isActivelyPushing = false;
 
 				float absSpeedX = std::abs(_speed.X);
-				if (absSpeedX > 4.0f) {
+				if (absSpeedX > PC::DirectionChangeThreshold) {
 					SetFacingLeft(_speed.X < 0.0f);
 				} else if (absSpeedX < 0.001f) {
 					_wasActivelyPushing = false;
@@ -1979,7 +1979,7 @@ namespace Jazz2::Actors
 
 			if (_isActivelyPushing == _wasActivelyPushing) {
 				float absSpeedX = std::abs(_speed.X);
-				if (absSpeedX > MaxRunningSpeed) {
+				if (absSpeedX > PC::DashAnimThreshold) {
 					composite |= AnimState::Dash;
 				} else if (_keepRunningTime > 0.0f) {
 					composite |= AnimState::Run;
@@ -2395,7 +2395,7 @@ namespace Jazz2::Actors
 
 			// Adjust walking animation speed
 			if (_currentAnimation->State == AnimState::Walk && _currentTransition == nullptr) {
-				_renderer.AnimDuration = _currentAnimation->AnimDuration * (1.4f - 0.4f * std::min(std::abs(_speed.X), MaxRunningSpeed) / MaxRunningSpeed);
+				_renderer.AnimDuration = _currentAnimation->AnimDuration * (PC::WalkAnimSpeedMax - PC::WalkAnimSpeedRange * std::min(std::abs(_speed.X), MaxRunningSpeed) / MaxRunningSpeed);
 			}
 		}
 	}
