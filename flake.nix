@@ -1,5 +1,5 @@
 {
-  description = "A project by ?.";
+  description = "Jazz² Resurrection – open-source Jazz Jackrabbit 2 reimplementation";
 
   inputs = {
     nixpkgs.url = "https://flakehub.com/f/DeterminateSystems/nixpkgs-weekly/*.tar.gz";
@@ -11,40 +11,54 @@
     ...
   }:
     flake-parts.lib.mkFlake {inherit inputs;} {
-      imports = [
-      ];
-      systems = ["x86_64-linux" "aarch64-linux" "aarch64-darwin" "x86_64-darwin"];
+      systems = ["x86_64-linux" "aarch64-linux"];
       perSystem = {
-        config,
-        self',
-        inputs',
         pkgs,
+        lib,
         system,
         ...
-      }: {
-        _module.args.pkgs = import self.inputs.nixpkgs {
-          inherit system;
-          config.allowUnfree = true;
-        };
-        # Per-system attributes can be defined here. The self' and inputs'
-        # module parameters provide easy access to attributes of the same
-        # system.
+      }: let
+        jazz2 = pkgs.stdenv.mkDerivation {
+          pname = "jazz2";
+          version = "dev";
 
-        # Equivalent to  inputs'.nixpkgs.legacyPackages.hello;
-        packages.default = pkgs.hello;
+          src = lib.cleanSource self;
+
+          nativeBuildInputs = [pkgs.cmake];
+          buildInputs = with pkgs; [
+            curl
+            libGL
+            libopenmpt
+            libvorbis
+            openal
+            SDL2
+            zlib
+          ];
+
+          cmakeFlags = [
+            (lib.cmakeBool "NCINE_DOWNLOAD_DEPENDENCIES" false)
+            (lib.cmakeFeature "NCINE_PREFERRED_BACKEND" "SDL2")
+            (lib.cmakeFeature "LIBOPENMPT_INCLUDE_DIR" "${lib.getDev pkgs.libopenmpt}/include/libopenmpt")
+          ];
+
+          meta = {
+            description = "Open-source Jazz Jackrabbit 2 reimplementation";
+            homepage = "https://github.com/deathkiller/jazz2-native";
+            license = lib.licenses.gpl3Only;
+            mainProgram = "jazz2";
+            platforms = lib.platforms.linux;
+          };
+        };
+      in {
+        packages.default = jazz2;
+
         devShells.default = pkgs.mkShell {
+          inputsFrom = [jazz2];
           packages = with pkgs; [
             nixfmt
             just
           ];
-          shellHook = ''
-          '';
         };
-      };
-      flake = {
-        # The usual flake attributes can be defined here, including system-
-        # agnostic ones like nixosModule and system-enumerating ones, although
-        # those are more easily expressed in perSystem.
       };
     };
 }
